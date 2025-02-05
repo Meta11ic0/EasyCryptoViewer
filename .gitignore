@@ -1,0 +1,29 @@
+# CMake build directories
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+
+# Qt-specific
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+*.pro.user
+*.pro.user.*
+
+# Compiled files
+*.obj
+*.dll
+*.exe
+*.pdb
+
+# IDE
+.vscode/
+.idea/
+*.user
+
+# Debug symbols
+*.pdb
+
+# Local configuration
+CMakeUserPresets.json
