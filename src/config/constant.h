@@ -169,4 +169,12 @@ const QStringList futuresTableHeaders = {
   "24h成交量",
   "24h成交额"
 };
+
+// 子导航按钮名称
+const QStringList subNavButtonName = {
+  "quotebutton",
+  "marginbutton",
+  "coinbutton",
+  "futuresbutton"
+};
 #endif // CONSTANTS_H
