@@ -40,11 +40,18 @@ public:
   int currentMarginType() const { return marginGroup ? marginGroup->checkedId() : -1; }        // 获取当前保证金类型
   int currentCoinType() const { return coinGroup ? coinGroup->checkedId() : -1; }              // 获取当前币种
   int currentFuturesType() const { return futuresGroup ? futuresGroup->checkedId() : -1; }     // 获取当前合约类型
+
 public slots:
   // 控制区域显示/隐藏
   void showQuoteArea(bool show = true);    // 显示/隐藏计价货币区域
   void showMarginArea(bool show = true);   // 显示/隐藏保证金区域
   void showFuturesArea(bool show = true);  // 显示/隐藏合约类型区域
+
+  // 设置当前选中状态
+  void setCurrentQuote(const QString& quote);  // 设置当前计价货币
+  void setCurrentMargin(int index);            // 设置当前保证金类型
+  void setCurrentCoin(int index);              // 设置当前币种
+  void setCurrentFutures(int index);           // 设置当前合约类型
 
 signals:
   // 各个区域的变化信号
@@ -85,7 +92,6 @@ private:
                              const QString& buttonName);
   
   void updateArrowButtonsState();          // 更新箭头按钮状态
-  int calculateScrollStep() const;          // 计算滚动步长
   void connectSignalsAndSlots();           // 连接信号和槽
 
 private:
