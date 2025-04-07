@@ -9,7 +9,7 @@ MainWindow::MainWindow(QWidget *parent)
   ui->setupUi(this);
   initUI();
  // 初始化交易对列表
-  tradingPairsSpot = {"BTC-USDT-SPOT", "ETH-USDT-SPOT", "SOL-USDT-SPOT", "DOGE-USDT-SPOT"};
+  tradingPairsSpot = {"BTC-USDT", "ETH-USDT", "SOL-USDT", "DOGE-USDT"};
   tradingPairsFuture = {"BTC-USDT-SWAP", "ETH-USDT-SWAP", "SOL-USDT-SWAP", "DOGE-USDT-SWAP"};
   // 初始化网络请求管理器
   networkManager = new QNetworkAccessManager(this);
@@ -112,7 +112,7 @@ void MainWindow::fetchMarketData() {
       openInterestData["messageType"] = "openInterest";
       // 设置请求URL
       tickerRequest.setUrl(QUrl("https://www.okx.com/api/v5/market/ticker?instId=" + pair));
-      openInterestRequest.setUrl(QUrl("https://www.okx.com/api/v5/public/open-interest?instType=SWAP?instId=" + pair));
+      openInterestRequest.setUrl(QUrl("https://www.okx.com/api/v5/public/open-interest?instType=SWAP&instId=" + pair));
       // 设置请求属性
       tickerRequest.setAttribute(QNetworkRequest::User, tickerData);
       openInterestRequest.setAttribute(QNetworkRequest::User, openInterestData);
@@ -162,17 +162,28 @@ void MainWindow::updateSpotTable(const QString &pair, const QJsonArray &dataArra
   QStandardItemModel *model = qobject_cast<QStandardItemModel *>(ui->spotTableView->model());
   if (!model) return;
   QJsonObject data = dataArray[0].toObject();
+  double last = data["last"].toString().toDouble();
+  double open = data["open24h"].toString().toDouble();
+  double change = (last - open) / open * 100.0;
   for (int i = 0; i < model->rowCount(); ++i) {
     if (model->item(i, 0)->text() == pair) {
+    //  spotModel->setHorizontalHeaderLabels({tr("产品"), tr("最新价"),
+    //  tr("涨跌幅"), tr("24h最高"), tr("24h最低"), tr("成交量")});
       model->item(i, 1)->setText(data["last"].toString());
-      model->item(i, 2)->setText(data["changePercent"].toString());
+      model->item(i, 2)->setText(QString::asprintf("%.2f%%", change));
+      model->item(i, 3)->setText(data["high24h"].toString());
+      model->item(i, 4)->setText(data["low24h"].toString());
+      model->item(i, 5)->setText(data["volCcy24h"].toString());
       return;
     }
   }
   QList<QStandardItem *> row;
   row << new QStandardItem(pair);
   row << new QStandardItem(data["last"].toString());
-  row << new QStandardItem(data["changePercent"].toString());
+  row << new QStandardItem(QString::asprintf("%.2f%%", change));
+  row << new QStandardItem(data["high24h"].toString());
+  row << new QStandardItem(data["low24h"].toString());
+  row << new QStandardItem(data["volCcy24h"].toString());
   model->appendRow(row);
 }
 
@@ -187,19 +198,23 @@ void MainWindow::updateFutureTable(const QString &pair, const QJsonArray &dataAr
       break;
     }
   }
-  if (row == -1) {  // 如果该交易对还不存在，则创建新行
-    QList<QStandardItem *> newRow;
-    newRow << new QStandardItem(pair);
-    newRow << new QStandardItem(type == "ticker" ? data["last"].toString() : "-");  // 先填充 ticker 价格，或占位
-    newRow << new QStandardItem(type == "funding" ? data["fundingRate"].toString() : "-");  // 先填充 funding 费率，或占位
-    model->appendRow(newRow);
-    return;
+  if (row == -1) {
+      QList<QStandardItem *> newRow;
+      newRow << new QStandardItem(pair);                              // 0 产品
+      newRow << new QStandardItem(type == "ticker" ? data["last"].toString() : "-"); // 1 最新价
+      newRow << new QStandardItem("-");                               // 2 涨跌幅（你还没处理）
+      newRow << new QStandardItem(type == "ticker" ? data["high24h"].toString() : "-");  // 3 高
+      newRow << new QStandardItem(type == "ticker" ? data["low24h"].toString() : "-");   // 4 低
+      newRow << new QStandardItem(type == "openInterest" ? data["openInterest"].toString() : "-"); // 5 持仓量
+      newRow << new QStandardItem(type == "ticker" ? data["volCcy24h"].toString() : "-");  // 6 成交量
+      model->appendRow(newRow);
+      return;
   }
   // 更新已有行的数据
   if (type == "ticker") {
     model->item(row, 1)->setText(data["last"].toString());  // 更新最新价格
-  } else if (type == "funding") {
-    model->item(row, 2)->setText(data["fundingRate"].toString());  // 更新资金费率
+  } else if (type == "openInterest") {
+    model->item(row, 5)->setText(data["openInterest"].toString());  // 设置持仓量
   }
 }
 
