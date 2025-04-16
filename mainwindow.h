@@ -25,9 +25,6 @@ public:
   MainWindow(QWidget *parent = nullptr);
   ~MainWindow();
 
-signals:
-  void tradeModeChanged(int mode);
-
 private slots:
   void onTradeModeButtonClicked(QAbstractButton *button);
   void updateTableArea(int mode);

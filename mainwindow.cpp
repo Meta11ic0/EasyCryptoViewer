@@ -33,8 +33,8 @@ void MainWindow::initUI() {
  //现货表格模型
   QStandardItemModel *spotModel = new QStandardItemModel(this);
   spotModel->setHorizontalHeaderLabels({tr("产品"), tr("最新价"), tr("涨跌幅"), tr("24h最高"), tr("24h最低"), tr("成交量")});
-  ui->spotTableView->setModel(spotModel);
-  ui->spotTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+  ui->tableView->setModel(spotModel);
+  ui->tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
   //合约表格模型
   QStandardItemModel *futureModel = new QStandardItemModel(this);
   futureModel->setHorizontalHeaderLabels({tr("产品"), tr("最新价"), tr("涨跌幅"), tr("24h最高"), tr("24h最低"),tr("持仓量"), tr("成交量")});
@@ -52,11 +52,11 @@ void MainWindow::connectSignals() {
 void MainWindow::onTradeModeButtonClicked(QAbstractButton *button) {
   int mode = tradeModeButtonGroup.id(button);  
   if (mode == 0) {
-    ui->spotTableView->setVisible(true);
+    ui->tableView->setVisible(true);
     ui->futureTableView->setVisible(false);
     ui->statusBar->showMessage(tr("现货交易"), 2000);
   } else if (mode == 1) {
-    ui->spotTableView->setVisible(false);
+    ui->tableView->setVisible(false);
     ui->futureTableView->setVisible(true);
     ui->statusBar->showMessage(tr("合约交易"), 2000);
   }
@@ -71,7 +71,7 @@ void MainWindow::updateTableArea(int mode) {
   updateTimer->stop();
   // 清空表格数据
   if (tradeMode == 0) {
-    ui->spotTableView->model()->removeRows(0, ui->spotTableView->model()->rowCount());
+    ui->tableView->model()->removeRows(0, ui->tableView->model()->rowCount());
   } else if (tradeMode == 1) {
     ui->futureTableView->model()->removeRows(0, ui->futureTableView->model()->rowCount());
   }
@@ -159,7 +159,7 @@ void MainWindow::onNetworkReply(QNetworkReply *reply) {
 
 
 void MainWindow::updateSpotTable(const QString &pair, const QJsonArray &dataArray) {
-  QStandardItemModel *model = qobject_cast<QStandardItemModel *>(ui->spotTableView->model());
+  QStandardItemModel *model = qobject_cast<QStandardItemModel *>(ui->tableView->model());
   if (!model) return;
   QJsonObject data = dataArray[0].toObject();
   double last = data["last"].toString().toDouble();
