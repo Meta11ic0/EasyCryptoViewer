@@ -26,21 +26,19 @@ public:
   ~MainWindow();
 
 private slots:
-  void onTradeModeButtonClicked(QAbstractButton *button);
-  void updateTableArea(int mode);
-  void fetchMarketData();
+  void onTradeModeChanged(int mode);
+  void fetchData();
   void onNetworkReply(QNetworkReply *reply);
 
 private:
-  void updateSpotTable(const QString &pair, const QJsonArray &dataArray);
-  void updateFutureTable(const QString &pair, const QJsonArray &dataArray, const QString &type);
-  void initUI();
+  void initResources();
   void connectSignals();
+  void updateTableArea(int mode, const QString &pair, const QString &type, const QJsonObject &data);
 
 private:
   Ui::MainWindow *ui;
   QButtonGroup tradeModeButtonGroup;
-  QStringList tradingPairsSpot, tradingPairsFuture;
+  QStringList tradingPairs;
   QNetworkAccessManager *networkManager;
   QTimer *updateTimer;
   QStandardItemModel *spotModel;

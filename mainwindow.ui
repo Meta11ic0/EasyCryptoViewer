@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>800</width>
-    <height>400</height>
+    <height>600</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -19,16 +19,10 @@
   <property name="minimumSize">
    <size>
     <width>800</width>
-    <height>400</height>
+    <height>500</height>
    </size>
   </property>
   <property name="maximumSize">
-   <size>
-    <width>800</width>
-    <height>400</height>
-   </size>
-  </property>
-  <property name="baseSize">
    <size>
     <width>800</width>
     <height>800</height>
@@ -37,26 +31,8 @@
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
-  <widget class="QWidget" name="centralWidget">
-   <property name="sizePolicy">
-    <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-     <horstretch>0</horstretch>
-     <verstretch>0</verstretch>
-    </sizepolicy>
-   </property>
-   <property name="minimumSize">
-    <size>
-     <width>800</width>
-     <height>300</height>
-    </size>
-   </property>
-   <property name="maximumSize">
-    <size>
-     <width>800</width>
-     <height>500</height>
-    </size>
-   </property>
-   <layout class="QVBoxLayout" name="verticalLayout_2">
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
     <property name="spacing">
      <number>5</number>
     </property>
@@ -82,13 +58,13 @@
       </property>
       <property name="minimumSize">
        <size>
-        <width>0</width>
+        <width>600</width>
         <height>50</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
-        <width>0</width>
+        <width>800</width>
         <height>50</height>
        </size>
       </property>
@@ -110,24 +86,6 @@
        </property>
        <item>
         <widget class="QPushButton" name="spotButton">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>120</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>120</width>
-           <height>30</height>
-          </size>
-         </property>
          <property name="text">
           <string>现货交易</string>
          </property>
@@ -135,24 +93,6 @@
        </item>
        <item>
         <widget class="QPushButton" name="futureButton">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>120</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>120</width>
-           <height>30</height>
-          </size>
-         </property>
          <property name="text">
           <string>合约交易</string>
          </property>
@@ -166,53 +106,16 @@
          <property name="sizeHint" stdset="0">
           <size>
            <width>40</width>
-           <height>25</height>
+           <height>20</height>
           </size>
          </property>
         </spacer>
        </item>
        <item>
-        <widget class="QLineEdit" name="filterInput">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>250</width>
-           <height>25</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>250</width>
-           <height>25</height>
-          </size>
-         </property>
-        </widget>
+        <widget class="QLineEdit" name="lineEdit"/>
        </item>
        <item>
         <widget class="QPushButton" name="okButton">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>50</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>50</width>
-           <height>30</height>
-          </size>
-         </property>
          <property name="text">
           <string>OK</string>
          </property>
@@ -222,44 +125,25 @@
      </widget>
     </item>
     <item>
-     <widget class="QWidget" name="tableWidget" native="true">
-      <layout class="QVBoxLayout" name="verticalLayout">
+     <widget class="QWidget" name="dataTable" native="true">
+      <layout class="QVBoxLayout" name="dataTableLayout">
        <property name="spacing">
         <number>5</number>
        </property>
        <property name="leftMargin">
-        <number>0</number>
+        <number>5</number>
        </property>
        <property name="topMargin">
-        <number>0</number>
+        <number>5</number>
        </property>
        <property name="rightMargin">
-        <number>0</number>
+        <number>5</number>
        </property>
        <property name="bottomMargin">
-        <number>0</number>
+        <number>5</number>
        </property>
        <item>
-        <widget class="QTableView" name="tableView">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-        </widget>
+        <widget class="QTableView" name="tableView"/>
        </item>
       </layout>
      </widget>
@@ -268,21 +152,15 @@
   </widget>
   <widget class="QStatusBar" name="statusBar">
    <property name="sizePolicy">
-    <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+    <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
      <horstretch>0</horstretch>
      <verstretch>0</verstretch>
     </sizepolicy>
    </property>
    <property name="minimumSize">
     <size>
-     <width>800</width>
-     <height>25</height>
-    </size>
-   </property>
-   <property name="maximumSize">
-    <size>
-     <width>1500</width>
-     <height>30</height>
+     <width>0</width>
+     <height>0</height>
     </size>
    </property>
   </widget>

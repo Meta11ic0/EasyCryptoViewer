@@ -1,220 +1,215 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 
-
 MainWindow::MainWindow(QWidget *parent)
-   : QMainWindow(parent)
+    : QMainWindow(parent)
     , tradeMode(-1)
     , ui(new Ui::MainWindow) {
   ui->setupUi(this);
-  initUI();
- // 初始化交易对列表
-  tradingPairsSpot = {"BTC-USDT", "ETH-USDT", "SOL-USDT", "DOGE-USDT"};
-  tradingPairsFuture = {"BTC-USDT-SWAP", "ETH-USDT-SWAP", "SOL-USDT-SWAP", "DOGE-USDT-SWAP"};
-  // 初始化网络请求管理器
-  networkManager = new QNetworkAccessManager(this);
-  // 初始化计时器
-  updateTimer = new QTimer(this);
-  //链接所有信号
+  initResources();
   connectSignals();
-  // 第一次手动触发
-  onTradeModeButtonClicked(ui->spotButton);
+  onTradeModeChanged(1);
 }
 
 MainWindow::~MainWindow() {
   delete ui;
 }
 
-void MainWindow::initUI() {
-  //导航栏按钮组
+void MainWindow::initResources() {
+  //导航栏
   tradeModeButtonGroup.addButton(ui->spotButton, 0);
   tradeModeButtonGroup.addButton(ui->futureButton, 1);
   tradeModeButtonGroup.setExclusive(true);
+  //默认选中现货按钮
+  ui->spotButton->click();
  //现货表格模型
-  QStandardItemModel *spotModel = new QStandardItemModel(this);
+  spotModel = new QStandardItemModel(this);
   spotModel->setHorizontalHeaderLabels({tr("产品"), tr("最新价"), tr("涨跌幅"), tr("24h最高"), tr("24h最低"), tr("成交量")});
+ //合约表格模型
+  futureModel = new QStandardItemModel(this);
+  futureModel->setHorizontalHeaderLabels({tr("产品"), tr("最新价"), tr("涨跌幅"), tr("24h最高"), tr("24h最低"),tr("持仓量"), tr("成交量")});
+ // 一开始默认显示现货表格
   ui->tableView->setModel(spotModel);
   ui->tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-  //合约表格模型
-  QStandardItemModel *futureModel = new QStandardItemModel(this);
-  futureModel->setHorizontalHeaderLabels({tr("产品"), tr("最新价"), tr("涨跌幅"), tr("24h最高"), tr("24h最低"),tr("持仓量"), tr("成交量")});
-  ui->futureTableView->setModel(futureModel);
-  ui->futureTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+ // 初始化交易对列表
+  tradingPairs = {"BTC-USDT", "ETH-USDT", "SOL-USDT", "DOGE-USDT"};
+  // 初始化网络请求管理器
+  networkManager = new QNetworkAccessManager(this);
+  // 初始化计时器
+  updateTimer = new QTimer(this);
 }
 
 void MainWindow::connectSignals() {
-  connect(&tradeModeButtonGroup, &QButtonGroup::buttonClicked, this, &MainWindow::onTradeModeButtonClicked);
-  connect(this, &MainWindow::tradeModeChanged, this, &MainWindow::updateTableArea);
+  connect(&tradeModeButtonGroup, &QButtonGroup::idClicked, this, &MainWindow::onTradeModeChanged);
+  connect(updateTimer, &QTimer::timeout, this, &MainWindow::fetchData);
   connect(networkManager, &QNetworkAccessManager::finished, this, &MainWindow::onNetworkReply);
-  connect(updateTimer, &QTimer::timeout, this, &MainWindow::fetchMarketData);
 }
 
-void MainWindow::onTradeModeButtonClicked(QAbstractButton *button) {
-  int mode = tradeModeButtonGroup.id(button);  
-  if (mode == 0) {
-    ui->tableView->setVisible(true);
-    ui->futureTableView->setVisible(false);
-    ui->statusBar->showMessage(tr("现货交易"), 2000);
-  } else if (mode == 1) {
-    ui->tableView->setVisible(false);
-    ui->futureTableView->setVisible(true);
-    ui->statusBar->showMessage(tr("合约交易"), 2000);
-  }
-  emit tradeModeChanged(mode);
-}
-
-void MainWindow::updateTableArea(int mode) {
+void MainWindow::onTradeModeChanged(int mode) {
   if(tradeMode == mode)
     return;
   tradeMode = mode;
   //停止定时器
   updateTimer->stop();
-  // 清空表格数据
-  if (tradeMode == 0) {
-    ui->tableView->model()->removeRows(0, ui->tableView->model()->rowCount());
-  } else if (tradeMode == 1) {
-    ui->futureTableView->model()->removeRows(0, ui->futureTableView->model()->rowCount());
+  ui->tableView->model()->removeRows(0, ui->tableView->model()->rowCount());
+  if(tradeMode == 0)  { //现货交易
+    qDebug() << "交易模式切换至现货交易" ;
+    ui->statusBar->showMessage(tr("交易模式切换至现货交易"), 2000);
+    ui->tableView->setModel(spotModel);
+  }  else if( tradeMode == 1) { //合约交易
+    qDebug() << "交易模式切换至合约交易";
+    ui->statusBar->showMessage(tr("交易模式切换至合约交易"), 2000);
+    ui->tableView->setModel(futureModel);
+  } else { //未定义
+    qDebug() << QString("交易模式切换至未定义 :%1").arg(tradeMode);
+    ui->statusBar->showMessage(tr("交易模式切换至未定义: %1").arg(tradeMode), 2000);
   }
-  qDebug() << "交易模式切换至" << (tradeMode == 0 ? "现货" : "合约");
-  // 触发第一次数据请求
-  fetchMarketData();
-  updateTimer->start(3000);
+  //触发第一次获取数据
+  fetchData();
+  updateTimer->start(5000);
 }
 
-void MainWindow::fetchMarketData() {
-  qDebug() << "开始获取市场数据...";
-  // 根据交易模式选择不同的交易对列表
-  const QStringList& tradingPairs = (tradeMode == 0) ? tradingPairsSpot : tradingPairsFuture;
+void MainWindow::fetchData() {
   // 遍历交易对发送请求
-  for (const QString &pair : tradingPairs) {
+  for(const QString & pair : tradingPairs) {
     // 构建基础请求数据
     QVariantMap baseRequestData;
     baseRequestData["pair"] = pair;
     baseRequestData["tradeMode"] = tradeMode;
-    // 现货交易只需要获取ticker数据
-    if (tradeMode == 0) {
-      QNetworkRequest tickerRequest;
+    if(tradeMode == 0) { //现货交易
+      // 现货交易只需要获取ticker数据
       QVariantMap tickerData = baseRequestData;
-      tickerData["messageType"] = "ticker";
-      tickerRequest.setUrl(QUrl("https://www.okx.com/api/v5/market/ticker?instId=" + pair));
+      tickerData["type"] = "ticker";
+      QNetworkRequest tickerRequest;
+      QUrl tickerUrl = QUrl("https://www.okx.com/api/v5/market/ticker?instId=" + pair);
+      tickerRequest.setUrl(tickerUrl);
       tickerRequest.setAttribute(QNetworkRequest::User, tickerData);
       networkManager->get(tickerRequest);
-    } 
-    // 合约交易需要获取ticker和持仓量数据
-    else {
-      // 构建ticker请求
-      QNetworkRequest tickerRequest;
+      qDebug() << "发送请求 " + tickerUrl.toString() ;
+      ui->statusBar->showMessage(tr("发送请求 ") + tickerUrl.toString(), 2000);
+    } else if(tradeMode == 1) { //合约交易
+      // 合约交易需要获取ticker和持仓量数据
       QVariantMap tickerData = baseRequestData;
-      tickerData["messageType"] = "ticker";
-      // 构建持仓量请求
-      QNetworkRequest openInterestRequest;
+      tickerData["type"] = "ticker";
+      QNetworkRequest tickerRequest;
+      QUrl tickerUrl = QUrl("https://www.okx.com/api/v5/market/ticker?instId=" + pair + "-SWAP");
+      tickerRequest.setUrl(tickerUrl);
+      tickerRequest.setAttribute(QNetworkRequest::User, tickerData);
+      networkManager->get(tickerRequest);
+      qDebug() << "发送请求 " + tickerUrl.toString() ;
+      ui->statusBar->showMessage(tr("发送请求 ") + tickerUrl.toString() , 2000);
+      //持仓量查询
       QVariantMap openInterestData = baseRequestData;
-      openInterestData["messageType"] = "openInterest";
-      // 设置请求URL
-      tickerRequest.setUrl(QUrl("https://www.okx.com/api/v5/market/ticker?instId=" + pair));
-      openInterestRequest.setUrl(QUrl("https://www.okx.com/api/v5/public/open-interest?instType=SWAP&instId=" + pair));
-      // 设置请求属性
-      tickerRequest.setAttribute(QNetworkRequest::User, tickerData);
+      openInterestData["type"] = "openInterest";
+      QNetworkRequest openInterestRequest;
+      QUrl openInterestUrl = QUrl("https://www.okx.com/api/v5/public/open-interest?instId=" + pair + "-SWAP");
+      openInterestRequest.setUrl(openInterestUrl);
       openInterestRequest.setAttribute(QNetworkRequest::User, openInterestData);
-      // 发送请求
-      networkManager->get(tickerRequest);
       networkManager->get(openInterestRequest);
+      qDebug() << "发送请求 " + openInterestUrl.toString() ;
+      ui->statusBar->showMessage(tr("发送请求 ") + openInterestUrl.toString() , 2000);
+    } else { //未定义
+      qDebug() << "tradeMode未定义 "  ;
+      ui->statusBar->showMessage(tr("tradeMode未定义 ") , 2000);
     }
   }
 }
 
 void MainWindow::onNetworkReply(QNetworkReply *reply) {
-  if (reply->error() != QNetworkReply::NoError) {
+  if(reply->error() != QNetworkReply::NoError) {
     qDebug() << "网络错误: " << reply->errorString();
+    ui->statusBar->showMessage(tr("网络错误: ") + reply->errorString(), 2000);
     reply->deleteLater();
     return;
   }
   QVariantMap requestData = reply->request().attribute(QNetworkRequest::User).toMap();
   QString pair = requestData["pair"].toString();
   int mode = requestData["tradeMode"].toInt();
-  QString type = requestData["messageType"].toString();  // ticker 或 openInteresting
-  if (mode != tradeMode) {  // 确保数据是当前交易模式
+  QString type = requestData["type"].toString();
+  // 确保数据是当前交易模式
+  if(mode != tradeMode) {
+    qDebug() << "数据与当前交易模式不符合，不做处理";
+    ui->statusBar->showMessage(tr("数据与当前交易模式不符合，不做处理"), 2000);
     reply->deleteLater();
     return;
   }
   QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
   QJsonObject obj = doc.object();
+  qDebug() << "返回数据：" << obj;
+  QString erroMess;
   if (!obj.contains("data")) {
-    reply->deleteLater();
-    return;
+      erroMess = tr("未知错误，当前数据没有data域 : ") + obj["code"].toString(" ");
+      qDebug() << erroMess;
+      ui->statusBar->showMessage(erroMess, 2000);
+      reply->deleteLater();
+      return;
   }
   QJsonArray dataArray = obj["data"].toArray();
-  if (dataArray.isEmpty()) {
+  if(dataArray.isEmpty()) {
+    erroMess = tr("data域为空 ");
+    qDebug() << erroMess;
+    ui->statusBar->showMessage(erroMess, 2000);
     reply->deleteLater();
     return;
   }
-  QJsonObject data = dataArray[0].toObject();
-  if (mode == 0) {
-    updateSpotTable(pair, dataArray);
-  } else if (mode == 1) {
-    updateFutureTable(pair, dataArray, type);
-  }
+  updateTableArea(mode, pair, type, dataArray[0].toObject());
   reply->deleteLater();
 }
 
-
-void MainWindow::updateSpotTable(const QString &pair, const QJsonArray &dataArray) {
-  QStandardItemModel *model = qobject_cast<QStandardItemModel *>(ui->tableView->model());
-  if (!model) return;
-  QJsonObject data = dataArray[0].toObject();
-  double last = data["last"].toString().toDouble();
-  double open = data["open24h"].toString().toDouble();
-  double change = (last - open) / open * 100.0;
-  for (int i = 0; i < model->rowCount(); ++i) {
-    if (model->item(i, 0)->text() == pair) {
-    //  spotModel->setHorizontalHeaderLabels({tr("产品"), tr("最新价"),
-    //  tr("涨跌幅"), tr("24h最高"), tr("24h最低"), tr("成交量")});
-      model->item(i, 1)->setText(data["last"].toString());
-      model->item(i, 2)->setText(QString::asprintf("%.2f%%", change));
-      model->item(i, 3)->setText(data["high24h"].toString());
-      model->item(i, 4)->setText(data["low24h"].toString());
-      model->item(i, 5)->setText(data["volCcy24h"].toString());
-      return;
-    }
-  }
-  QList<QStandardItem *> row;
-  row << new QStandardItem(pair);
-  row << new QStandardItem(data["last"].toString());
-  row << new QStandardItem(QString::asprintf("%.2f%%", change));
-  row << new QStandardItem(data["high24h"].toString());
-  row << new QStandardItem(data["low24h"].toString());
-  row << new QStandardItem(data["volCcy24h"].toString());
-  model->appendRow(row);
-}
-
-void MainWindow::updateFutureTable(const QString &pair, const QJsonArray &dataArray, const QString &type) {
-  QStandardItemModel *model = qobject_cast<QStandardItemModel *>(ui->futureTableView->model());
-  if (!model) return;
-  QJsonObject data = dataArray[0].toObject();
+void MainWindow::updateTableArea(int mode, const QString &pair, const QString &type, const QJsonObject &data) {
+  QStandardItemModel *model = qobject_cast<QStandardItemModel*>(ui->tableView->model());
+  if(!model) return;
+  // 查找行号
   int row = -1;
   for (int i = 0; i < model->rowCount(); ++i) {
-    if (model->item(i, 0)->text() == pair) {
+    if (model->item(i, 0)->text().contains(pair)) {
       row = i;
       break;
     }
   }
+  // 计算涨跌幅
+  double last = data.value("last").toString().toDouble();
+  double open = data.value("open24h").toString().toDouble();
+  QString changeStr = open != 0 ? QString::asprintf("%.2f%%", (last - open) / open * 100.0) : "error";
+  // 数据字段
+  QString lastStr = data.value("last").toString("error");
+  QString highStr = data.value("high24h").toString("error");
+  QString lowStr = data.value("low24h").toString("error");
+  QString volStr = data.value("volCcy24h").toString("error");
+  QString openInterestStr = data.value("oiCcy").toString("error"); // 仅合约模式才有
   if (row == -1) {
-      QList<QStandardItem *> newRow;
-      newRow << new QStandardItem(pair);                              // 0 产品
-      newRow << new QStandardItem(type == "ticker" ? data["last"].toString() : "-"); // 1 最新价
-      newRow << new QStandardItem("-");                               // 2 涨跌幅（你还没处理）
-      newRow << new QStandardItem(type == "ticker" ? data["high24h"].toString() : "-");  // 3 高
-      newRow << new QStandardItem(type == "ticker" ? data["low24h"].toString() : "-");   // 4 低
-      newRow << new QStandardItem(type == "openInterest" ? data["openInterest"].toString() : "-"); // 5 持仓量
-      newRow << new QStandardItem(type == "ticker" ? data["volCcy24h"].toString() : "-");  // 6 成交量
-      model->appendRow(newRow);
-      return;
+    // 新行
+    QList<QStandardItem *> newRow;
+    newRow << new QStandardItem(pair)               // 产品
+                 << new QStandardItem(lastStr)            // 最新价
+                 << new QStandardItem(changeStr)          // 涨跌幅
+                 << new QStandardItem(highStr)            // 24h最高
+                 << new QStandardItem(lowStr);            // 24h最低
+    if (mode == 0) {
+      newRow << new QStandardItem(volStr);        // 成交量（现货）
+    } else if (mode == 1) {
+      newRow << new QStandardItem(openInterestStr) // 持仓量
+                   << new QStandardItem(volStr);         // 成交量（合约）
+    }
+    model->appendRow(newRow);
+  } else {
+    // 更新已有行
+    if (type == "ticker") {
+        model->item(row, 1)->setText(lastStr);
+        model->item(row, 2)->setText(changeStr);
+        model->item(row, 3)->setText(highStr);
+        model->item(row, 4)->setText(lowStr);
+        if (mode == 0) {
+            model->item(row, 5)->setText(volStr);
+        } else if (mode == 1) {
+            model->item(row, 6)->setText(volStr);
+        }
+    } else if (type == "openInterest" && mode == 1) {
+        // 合约持仓量单独更新
+        model->item(row, 5)->setText(openInterestStr);
+    }
   }
-  // 更新已有行的数据
-  if (type == "ticker") {
-    model->item(row, 1)->setText(data["last"].toString());  // 更新最新价格
-  } else if (type == "openInterest") {
-    model->item(row, 5)->setText(data["openInterest"].toString());  // 设置持仓量
-  }
+  QString modeStr = (mode == 0) ? "现货" : "合约";
+  qDebug() << modeStr << "交易表格更新数据：" << pair << " 类型：" << type;
+  ui->statusBar->showMessage(tr("%1交易表格更新数据: %2").arg(modeStr, pair), 2000);
 }
-
